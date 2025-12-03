@@ -37,7 +37,7 @@
     font-size: 35px;
     border: 2px solid black;
     border-radius: 12px; /* soft rounded corners */
-    cursor: pointer;
+    cursor: none;
     transition: transform 0.2s ease;
   }
 
@@ -54,7 +54,7 @@
     font-size: 25px;
     border-radius: 12px;
     border: none;
-    cursor: pointer;
+    cursor: none;
     background-color: #30AF45;
     color: white;
   }
@@ -195,7 +195,7 @@ function animate() {
   if(!gameActive) return;
   numbers.forEach(n => {
     n.angle += 0.9;
-    n.btn.style.transform = `rotate(${n.angle + 45}deg)`;
+    n.btn.style.transform = `rotate(${n.angle + 10}deg)`;
     n.btn.firstChild.style.transform = `rotate(${-n.angle}deg)`;
   });
   requestAnimationFrame(animate);
