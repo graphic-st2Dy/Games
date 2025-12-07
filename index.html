@@ -19,7 +19,7 @@
     overflow: hidden;
   }
 
-  h1 { position: absolute; left: 5%; bottom: 2%; font-size: 18px; }
+  h1 { position: absolute; left: 5%; bottom: 2%; font-size: 16px; }
   #score, #timer, #best { margin: 0 20px; font-size: 18px; font-weight: 300; text-align: center; }
   #gameArea { position: relative; flex: 1; width: 100%; display: block; }
 
@@ -71,16 +71,61 @@
     white-space: nowrap;
     text-shadow: 0 0 10px black, 0 0 20px black;
   }
+  
+  /* Fullscreen dark overlay */
+#tutorialOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7); /* dark transparent background */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999; /* on top of everything */
+}
+
+/* The text box */
+.tutorial-box {
+  background: white;
+  color: black;
+  padding: 20px;
+  width: 80%;
+  max-width: 350px;
+  border-radius: 15px;
+  text-align: center;
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+}
+  #closeTutorial {
+    font-size: 1.2rem;
+    padding: 2px 16px;
+    border: 1px solid black;
+    border-radius: 4px;
+  }
 </style>
 </head>
 <body>
 
+  <div id="tutorialOverlay">
+  <div class="tutorial-box">
+    <h2>How to Play</h2>
+    <p>Tap the buttons from the lowest to highest numbers to get a score</p>
+    <button id="closeTutorial">Ok</button>
+  </div>
+</div>
+
+<div id="game">
+  <!-- Your game elements -->
+</div>
+  
 <h1 style="font-weight: 700;">Brain<span style="color: #ff9900;">Game<span style="font-size: 26px; font-weight: 900; color: #ffbb22; text-shadow: 0 0 6px #ff9900;">z</span></span></h1>
   <div style="width: 100%; display: flex; justify-content: space-between; margin-top: 15px;">
   <div id="score">Score: 0</div>
   <div id="timer">Time: 100</div>
   <div id="best">Best: 0</div>
   </div>
+    
 <button id="playBtn">Play</button>
 <div id="gameArea"></div>
 <div id="superText" class="superText"></div>
@@ -90,7 +135,6 @@
 <audio id="clickSound" preload="auto"></audio>
 <audio id="scoreSound" preload="auto"></audio>
 <audio id="loseSound" preload="auto"></audio>
-
 <script>
 const playBtn = document.getElementById('playBtn');
 const gameArea = document.getElementById('gameArea');
@@ -108,6 +152,27 @@ const loseSound = document.getElementById('loseSound');
 // Set your audio file paths here:
 bgMusic.src = 'bgMusic.mp3';
 
+   
+  // Check if user is new
+const firstTime = localStorage.getItem("firstTimePlayer");
+
+const overlay = document.getElementById("tutorialOverlay");
+const game = document.getElementById("game");
+const closeBtn = document.getElementById("closeTutorial");
+
+// If first time, show overlay
+if (!firstTime) {
+  overlay.style.display = "flex"; // show
+  game.style.filter = "blur(0px)";
+} else {
+  overlay.style.display = "none"; // hide
+}
+
+// When user closes tutorial
+closeBtn.onclick = () => {
+  localStorage.setItem("firstTimePlayer", "true");
+  overlay.style.display = "none";
+};
   
   
   document.addEventListener("visibilitychange", () => {
@@ -140,7 +205,7 @@ function randomLightColor() {
 function generateUniqueNumbers(count, maxValue) {
   const nums = new Set();
   while(nums.size < count) {
-    const val = Math.floor(Math.random() * maxValue + 1);
+    const val = Math.floor(Math.random() * maxValue);
     nums.add(val);
   }
   return Array.from(nums);
@@ -151,8 +216,8 @@ function generateNumbers() {
   numbers = [];
   expectedOrder = [];
 
-  const count = Math.min(2 + Math.floor(score / 5), 6);
-  const uniqueValues = generateUniqueNumbers(count, 3 + score);
+  const count = Math.min(2 + Math.floor(score / 5), 10);
+  const uniqueValues = generateUniqueNumbers(count, 2 + score);
 
   for (let i = 0; i < count; i++) {
     const value = uniqueValues[i];
@@ -166,11 +231,12 @@ function generateNumbers() {
     const areaWidth = gameArea.clientWidth;
     const areaHeight = gameArea.clientHeight;
 
-    let x, y, safe;
+    let x, y, z, safe;
     let attempts = 0;
     do {
       x = Math.random() * (areaWidth - 2 * BTN_SIZE);
       y = Math.random() * (areaHeight - 2 * BTN_SIZE);
+      z = 100 - value;
       safe = true;
       for (let n of numbers) {
         const dx = Math.abs(n.x - x);
@@ -186,11 +252,12 @@ function generateNumbers() {
 
     btn.style.left = x + 'px';
     btn.style.top = y + 'px';
+    btn.style.zindex = z + 'px';
 
     btn.onclick = () => checkNumber(btn, value);
 
     gameArea.appendChild(btn);
-    numbers.push({btn, value, x, y, angle: 0});
+    numbers.push({btn, value, x, y, z, angle: 0});
   }
 
   expectedOrder = numbers.map(n => n.value).sort((a,b)=>a-b);
@@ -234,7 +301,7 @@ function checkNumber(button, value) {
     setTimeout(() => button.remove() , 100);
     expectedOrder.shift();
     if(expectedOrder.length === 0) {
-      score++;
+      score++ ;
       if (score >= best) { best = score;}
       scoreDisplay.textContent = "Score: " + score;
       bestScoreDisplay.textContent = "Best: " + best;
