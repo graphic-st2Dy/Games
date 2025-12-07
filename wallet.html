@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Copy Box</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        background: #f4f4f4;
+        margin: 0;
+    }
+
+    .copy-box {
+        display: flex;
+        align-items: center;
+        gap: 0;
+        width: 100%;
+        max-width: 350px;
+        padding: 15px;
+        margin-top: 10vh;
+        border-radius: 12px;
+    }
+
+    .copy-box input {
+        flex: 1;
+        padding: 10px;
+        font-size: 16px;
+        border: 1px solid #ccc;
+        border-radius: 8px 0 0 8px;
+        outline: none;
+    }
+
+    .copy-box button {
+        padding: 10px 15px;
+        font-size: 15px;
+        border: none;
+        border-radius: 0 8px 8px 0;
+        cursor: pointer;
+        background: #007bff;
+        color: white;
+        transition: 0.2s;
+    }
+
+    .copy-box button:hover {
+        transform: scale(1.05);
+    }
+</style>
+</head>
+<body>
+   
+    <h1>Tip me in okx</h1>
+<div class="copy-box">
+    <input type="text" id="copyText" value="0x9ac40b58eaccf71a5796ec5ed266a51a2b23f466" readonly>
+    <button onclick="copyText()">Copy</button>
+</div>
+    
+<script>
+function copyText() {
+    const text = document.getElementById("copyText");
+    text.select();
+    text.setSelectionRange(0, 99999);
+    navigator.clipboard.writeText(text.value);
+
+    // Optional: change button text for 1 second
+    const btn = event.target;
+    const old = btn.innerText;
+    btn.innerText = "Copied!";
+    setTimeout(() => btn.innerText = old, 1000);
+}
+</script>
+
+</body>
+</html>

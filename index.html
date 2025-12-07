@@ -20,6 +20,7 @@
   }
 
   h1 { position: absolute; left: 5%; bottom: 2%; font-size: 16px; }
+  a { position: absolute; right: 5%; bottom: 2%; font-size: 12px; z-index: 9999; cursor: none;}
   #score, #timer, #best { margin: 0 20px; font-size: 18px; font-weight: 300; text-align: center; }
   #gameArea { position: relative; flex: 1; width: 100%; display: block; }
 
@@ -83,7 +84,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 9999; /* on top of everything */
+  z-index: 999; /* on top of everything */
 }
 
 /* The text box */
@@ -120,6 +121,7 @@
 </div>
   
 <h1 style="font-weight: 700;">Brain<span style="color: #ff9900;">Game<span style="font-size: 26px; font-weight: 900; color: #ffbb22; text-shadow: 0 0 6px #ff9900;">z</span></span></h1>
+<a href="wallet.html" style="font-weight: 300; color: white;">Tip me in <span style="color: #00ff22;">OKX</span></a>
   <div style="width: 100%; display: flex; justify-content: space-between; margin-top: 15px;">
   <div id="score">Score: 0</div>
   <div id="timer">Time: 100</div>
@@ -155,11 +157,16 @@ bgMusic.src = 'bgMusic.mp3';
    
   // Check if user is new
 const firstTime = localStorage.getItem("firstTimePlayer");
+const Besty = localStorage.getItem("best-score");
 
 const overlay = document.getElementById("tutorialOverlay");
 const game = document.getElementById("game");
 const closeBtn = document.getElementById("closeTutorial");
 
+  let best = 0;
+  
+  if (!Besty) best = 0; else { best = Besty; bestScoreDisplay.textContent = "Best: " + best; }
+  
 // If first time, show overlay
 if (!firstTime) {
   overlay.style.display = "flex"; // show
@@ -185,7 +192,6 @@ closeBtn.onclick = () => {
   
   
 let score = 0;
-let best = 0;
 let numbers = [];
 let expectedOrder = [];
 let timer = 100;
@@ -305,6 +311,7 @@ function checkNumber(button, value) {
       if (score >= best) { best = score;}
       scoreDisplay.textContent = "Score: " + score;
       bestScoreDisplay.textContent = "Best: " + best;
+      localStorage.setItem("best-score", best);
       timer += 1;
        let scoreSound = new Audio('score.mp3');
        scoreSound.volume = 0.25;
