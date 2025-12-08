@@ -3,6 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <title>Copy Box</title>
+          <!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-TWJLPB650Z"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-TWJLPB650Z');
+</script>
 <style>
     body {
         font-family: Arial, sans-serif;
@@ -58,15 +67,7 @@
     <input type="text" id="copyText" value="0x9ac40b58eaccf71a5796ec5ed266a51a2b23f466" readonly>
     <button onclick="copyText()">Copy</button>
 </div>
-      <!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-TWJLPB650Z"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
 
-  gtag('config', 'G-TWJLPB650Z');
-</script>
 <script>
 function copyText() {
     const text = document.getElementById("copyText");
