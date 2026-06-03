@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fit or Fail</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --panel-color: #1e293b;
+            --text-color: #f8fafc;
+            --accent-color: #38bdf8;
+            --bar-empty: #334155;
+            --danger-color: #ef4444;
+            --success-color: #22c55e;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        h1 {
+            color: var(--accent-color);
+            letter-spacing: 2px;
+            margin-top: 30px;
+            font-size: 3rem;
+            text-transform: uppercase;
+            text-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
+        }
+
+        /* Menu Screen */
+        #menu-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin-top: 50px;
+            background-color: var(--panel-color);
+            padding: 50px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            width: 90%;
+            max-width: 600px;
+            text-align: center;
+        }
+
+        .menu-desc {
+            font-size: 1.1rem;
+            color: #94a3b8;
+            margin-bottom: 30px;
+        }
+
+        .mode-btn {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            border: 2px solid var(--accent-color);
+            padding: 20px 40px;
+            font-size: 1.3rem;
+            font-weight: bold;
+            border-radius: 12px;
+            cursor: pointer;
+            margin: 10px 0;
+            width: 100%;
+            transition: all 0.2s;
+        }
+
+        .mode-btn:hover {
+            background-color: var(--accent-color);
+            color: var(--bg-color);
+            transform: scale(1.02);
+            box-shadow: 0 0 20px rgba(56, 189, 248, 0.3);
+        }
+
+        .mode-btn span {
+            display: block;
+            font-size: 0.9rem;
+            font-weight: normal;
+            opacity: 0.8;
+            margin-top: 5px;
+        }
+
+        /* Game Screen */
+        #game-screen {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+        }
+
+        #game-board {
+            background-color: var(--panel-color);
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            width: 90%;
+            max-width: 800px;
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 20px;
+            background: rgba(0,0,0,0.2);
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        #timer {
+            color: var(--accent-color);
+            font-family: monospace;
+            font-size: 1.5rem;
+        }
+
+        /* Target Bar Styles */
+        .bar-container {
+            position: relative;
+            width: 100%;
+            height: 80px;
+            background-color: var(--bar-empty);
+            border: 3px solid #475569;
+            border-radius: 8px;
+            margin-bottom: 40px;
+            display: flex;
+            align-items: center;
+            overflow: hidden;
+            box-shadow: inset 0 0 15px rgba(0,0,0,0.5);
+        }
+
+        .fill-percentage-text {
+            position: absolute;
+            width: 100%;
+            text-align: center;
+            font-size: 2rem;
+            font-weight: 900;
+            color: rgba(255, 255, 255, 0.8);
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            pointer-events: none; 
+            z-index: 10;
+        }
+
+        /* Blocks */
+        .block {
+            height: 100%;
+            cursor: pointer;
+            transition: transform 0.1s, opacity 0.2s, color 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+            color: white;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.7);
+            border-right: 1px solid rgba(255,255,255,0.3);
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        .block:hover {
+            opacity: 0.85;
+        }
+
+        .bar-container .block {
+            color: transparent !important;
+            text-shadow: none !important;
+        }
+
+        /* Pool Area */
+        #pool {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            min-height: 100px;
+            padding: 20px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 8px;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .pool-block-wrapper {
+            border-radius: 6px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            transition: transform 0.1s;
+        }
+        
+        .pool-block-wrapper:active {
+            transform: scale(0.95);
+        }
+
+        /* General Buttons */
+        .btn {
+            background-color: var(--accent-color);
+            color: var(--bg-color);
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 15px;
+            transition: transform 0.1s, background-color 0.2s;
+        }
+
+        .btn:hover {
+            background-color: #7dd3fc;
+            transform: scale(1.05);
+        }
+
+        .btn-submit {
+            background-color: var(--success-color);
+            color: white;
+            width: 100%;
+            margin-top: 25px;
+        }
+
+        .btn-submit:hover {
+            background-color: #4ade80;
+        }
+        
+        .btn-secondary {
+            background-color: #475569;
+            color: white;
+            padding: 10px 20px;
+            font-size: 1rem;
+            margin-top: 0;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #64748b;
+        }
+
+        /* Shake Animation */
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            50% { transform: translateX(5px); }
+            75% { transform: translateX(-5px); }
+            100% { transform: translateX(0); }
+        }
+        .shake { animation: shake 0.3s; }
+
+        /* Modal Overlay */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.9);
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .modal-content {
+            background: var(--panel-color);
+            padding: 40px;
+            border-radius: 16px;
+            text-align: center;
+            border: 2px solid var(--accent-color);
+            max-width: 400px;
+        }
+
+        .modal h2 { font-size: 2.5rem; margin-top: 0; }
+        .win-text { color: var(--success-color); }
+        .lose-text { color: var(--danger-color); }
+        
+        .modal-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Fit or Fail</h1>
+
+    <!-- MAIN MENU -->
+    <div id="menu-screen">
+        <div class="menu-desc">Choose your challenge. Hit 95% to survive.</div>
+        
+        <button class="mode-btn" onclick="startGame('math')">
+            Mathematical Mode
+            <span>Calculate the perfect fit. (Squares with numbers)</span>
+        </button>
+        
+        <button class="mode-btn" onclick="startGame('spatial')">
+            Spatial Mode
+            <span>Trust your eyes. (Proportional shapes, no numbers)</span>
+        </button>
+    </div>
+
+    <!-- GAME BOARD -->
+    <div id="game-screen">
+        <div id="game-board">
+            <div class="stats">
+                <div>Level: <span id="level-display">1</span></div>
+                <div id="timer">40.00s</div>
+                <button class="btn btn-secondary" onclick="returnToMenu()">Menu</button>
+            </div>
+
+            <div class="bar-container" id="target-bar">
+                <div class="fill-percentage-text" id="percentage-text">0%</div>
+            </div>
+
+            <h3 id="pool-title">Available Blocks</h3>
+            <div id="pool"></div>
+
+            <button class="btn btn-submit" onclick="evaluateWin()">Lock & Submit</button>
+        </div>
+    </div>
+
+    <!-- Result Modal -->
+    <div id="result-modal" class="modal">
+        <div class="modal-content">
+            <h2 id="modal-title"></h2>
+            <p id="modal-desc" style="font-size: 1.2rem;"></p>
+            <div class="modal-buttons">
+                <button class="btn" id="modal-btn"></button>
+                <button class="btn btn-secondary" onclick="returnToMenu()">Back to Menu</button>
+            </div>
+        </div>
+    </div>
+
+<script>
+    // --- Audio System ---
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    let audioCtx;
+
+    function initAudio() {
+        if (!audioCtx) {
+            audioCtx = new AudioContext();
+        }
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+    }
+
+    function playPopSound() {
+        initAudio();
+        const osc = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        
+        osc.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        
+        osc.type = 'sine';
+        
+        // Quick frequency drop to create a "pop" effect
+        osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.05);
+        
+        // Quick fade out
+        gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.05);
+        
+        osc.start(audioCtx.currentTime);
+        osc.stop(audioCtx.currentTime + 0.05);
+    }
+
+    function playErrorSound() {
+        initAudio();
+        const osc = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        
+        osc.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        
+        osc.type = 'sawtooth'; // Gives a slightly rougher, "buzzy" error sound
+        
+        osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+        
+        gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
+        
+        osc.start(audioCtx.currentTime);
+        osc.stop(audioCtx.currentTime + 0.15);
+    }
+    // --------------------
+
+    let gameMode = 'math'; 
+    let currentLevel = 1;
+    let baseLevelTime = 40; 
+    let timerSeconds = 40;
+    let timerInterval;
+    let blocks = [];
+    let currentFillPercentage = 0; 
+
+    const menuScreen = document.getElementById('menu-screen');
+    const gameScreen = document.getElementById('game-screen');
+    const barContainer = document.getElementById('target-bar');
+    const poolContainer = document.getElementById('pool');
+    const percentageText = document.getElementById('percentage-text');
+    const timerText = document.getElementById('timer');
+    const levelDisplay = document.getElementById('level-display');
+    const modal = document.getElementById('result-modal');
+    const poolTitle = document.getElementById('pool-title');
+
+    function startGame(mode) {
+        initAudio(); // Initialize audio context on first user click
+        gameMode = mode;
+        menuScreen.style.display = 'none';
+        gameScreen.style.display = 'flex';
+        
+        if (gameMode === 'math') {
+            poolTitle.innerText = "Available Blocks (Mathematical)";
+        } else {
+            poolTitle.innerText = "Available Blocks (Spatial)";
+        }
+        
+        startLevel(1);
+    }
+
+    function returnToMenu() {
+        clearInterval(timerInterval);
+        modal.style.display = 'none';
+        gameScreen.style.display = 'none';
+        menuScreen.style.display = 'flex';
+    }
+
+    function startLevel(level) {
+        currentLevel = level;
+        levelDisplay.innerText = currentLevel;
+        
+        if (currentLevel === 1) {
+            baseLevelTime = 40;
+        } else {
+            baseLevelTime = baseLevelTime * 0.95; 
+        }
+        timerSeconds = baseLevelTime;
+        
+        currentFillPercentage = 0;
+        updateUI();
+        
+        blocks = generateLevelBlocks();
+        renderBlocks();
+        
+        clearInterval(timerInterval);
+        timerInterval = setInterval(updateTimer, 10);
+    }
+
+    function updateTimer() {
+        if (timerSeconds <= 0) {
+            timerSeconds = 0;
+            clearInterval(timerInterval);
+            evaluateWin(); 
+        } else {
+            timerSeconds -= 0.01;
+        }
+        timerText.innerText = timerSeconds.toFixed(2) + "s";
+        
+        if(timerSeconds <= 10) timerText.style.color = 'var(--danger-color)';
+        else timerText.style.color = 'var(--accent-color)';
+    }
+
+    function generateLevelBlocks() {
+        let generatedBlocks = [];
+        let targetSum = 95 + Math.floor(Math.random() * 5); 
+        
+        let block1 = 20 + Math.floor(Math.random() * 15);
+        let block2 = 20 + Math.floor(Math.random() * 15);
+        let block3 = targetSum - block1 - block2;
+        
+        generatedBlocks.push(createBlockData(block1));
+        generatedBlocks.push(createBlockData(block2));
+        generatedBlocks.push(createBlockData(block3));
+
+        let trapBig = block1 + block2 + Math.floor(Math.random() * 8) + 2; 
+        if (trapBig > 65) trapBig = 65; 
+        let trapMed = block3 + Math.floor(Math.random() * 12) + 4;
+        let trapSmall = Math.floor(Math.random() * 10) + 5;
+
+        generatedBlocks.push(createBlockData(trapBig));
+        generatedBlocks.push(createBlockData(trapMed));
+        generatedBlocks.push(createBlockData(trapSmall));
+
+        return generatedBlocks.sort(() => Math.random() - 0.5);
+    }
+
+    function createBlockData(widthPercent) {
+        const hue = Math.floor(Math.random() * 360);
+        const color = `hsl(${hue}, 75%, 50%)`;
+        return {
+            id: Math.random().toString(36).substring(2, 9),
+            width: widthPercent,
+            color: color,
+            inBar: false
+        };
+    }
+
+    function renderBlocks() {
+        document.querySelectorAll('.block, .pool-block-wrapper').forEach(el => el.remove());
+
+        blocks.forEach(blockData => {
+            const blockDiv = document.createElement('div');
+            blockDiv.className = 'block';
+            blockDiv.style.backgroundColor = blockData.color;
+            blockDiv.onclick = () => handleBlockClick(blockData.id);
+
+            if (gameMode === 'math') {
+                blockDiv.innerText = blockData.width + '%'; 
+            } else {
+                blockDiv.innerText = ''; 
+            }
+
+            if (blockData.inBar) {
+                blockDiv.style.width = blockData.width + '%';
+                barContainer.appendChild(blockDiv);
+            } else {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'pool-block-wrapper';
+                
+                if (gameMode === 'math') {
+                    wrapper.style.width = '70px';
+                    wrapper.style.height = '70px';
+                } else {
+                    wrapper.style.width = (blockData.width * 5) + 'px'; 
+                    wrapper.style.height = '60px';
+                }
+                
+                blockDiv.style.width = '100%'; 
+                wrapper.appendChild(blockDiv);
+                poolContainer.appendChild(wrapper);
+            }
+        });
+    }
+
+    function handleBlockClick(id) {
+        const block = blocks.find(b => b.id === id);
+        
+        if (block.inBar) {
+            block.inBar = false;
+            currentFillPercentage -= block.width;
+            playPopSound(); // Play sound when removing
+        } else {
+            if (currentFillPercentage + block.width <= 100) {
+                block.inBar = true;
+                currentFillPercentage += block.width;
+                playPopSound(); // Play sound when adding
+            } else {
+                playErrorSound(); // Play error buzz when it doesn't fit
+                barContainer.classList.remove('shake');
+                void barContainer.offsetWidth; 
+                barContainer.classList.add('shake');
+            }
+        }
+
+        updateUI();
+        renderBlocks();
+    }
+
+    function updateUI() {
+        percentageText.innerText = currentFillPercentage + '%';
+        
+        if (currentFillPercentage >= 95) {
+            percentageText.style.color = 'var(--success-color)';
+        } else {
+            percentageText.style.color = 'rgba(255, 255, 255, 0.8)';
+        }
+    }
+
+    function evaluateWin() {
+        clearInterval(timerInterval);
+        modal.style.display = 'flex';
+        
+        const title = document.getElementById('modal-title');
+        const desc = document.getElementById('modal-desc');
+        const btn = document.getElementById('modal-btn');
+
+        if (currentFillPercentage >= 95) {
+            title.innerHTML = '<span class="win-text">Perfect Fit!</span>';
+            desc.innerText = `You filled exactly ${currentFillPercentage}% of the bar.`;
+            btn.innerText = "Next Level";
+            btn.onclick = () => {
+                modal.style.display = 'none';
+                startLevel(currentLevel + 1);
+            };
+        } else {
+            title.innerHTML = '<span class="lose-text">Not Quite...</span>';
+            desc.innerText = `You only reached ${currentFillPercentage}%. You need at least 95%.`;
+            btn.innerText = "Try Again";
+            btn.onclick = () => {
+                modal.style.display = 'none';
+                startLevel(currentLevel); 
+            };
+        }
+    }
+</script>
+
+</body>
+</html>
