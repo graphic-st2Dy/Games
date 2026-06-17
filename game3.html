@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Zen Vector - Ambient Physics Puzzle</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            background-color: #0d1117;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #game-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            max-width: 600px;
+            max-height: 900px;
+            background: #080b10;
+            box-shadow: 0 0 30px rgba(0, 255, 200, 0.05);
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        
+        /* Menu Overlay Screens */
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(8, 11, 16, 0.95);
+            backdrop-filter: blur(10px);
+            z-index: 10;
+            padding: 40px 20px;
+            transition: opacity 0.4s ease;
+        }
+        .hidden {
+            display: none !important;
+            opacity: 0;
+        }
+        
+        h1 {
+            color: #00ffc8;
+            font-size: 32px;
+            letter-spacing: 4px;
+            margin-bottom: 30px;
+            text-shadow: 0 0 15px rgba(0, 255, 200, 0.4);
+            text-transform: uppercase;
+        }
+        
+        /* Grid Layout for Levels */
+        .level-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            width: 100%;
+            max-height: 60vh;
+            overflow-y: auto;
+            padding: 10px;
+            justify-content: center;
+        }
+        .level-card {
+            background: rgba(13, 17, 23, 0.6);
+            border: 1px solid #00bfff;
+            color: #00bfff;
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            border-radius: 10px;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0, 191, 255, 0.1);
+            transition: all 0.2s ease;
+        }
+        .level-card:active {
+            background: #00bfff;
+            color: #080b10;
+            box-shadow: 0 0 20px #00bfff;
+        }
+        
+        /* Fallback Error Text */
+        .no-data-msg {
+            color: #ff4a4a;
+            font-size: 20px;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px rgba(255, 74, 74, 0.4);
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+
+        /* Gameplay Active HUD */
+        #ui-layer {
+            position: absolute;
+            bottom: 40px;
+            left: 0;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            pointer-events: none;
+            z-index: 5;
+        }
+        .btn {
+            pointer-events: auto;
+            background: rgba(13, 17, 23, 0.8);
+            border: 1px solid #00ffc8;
+            color: #00ffc8;
+            padding: 12px 35px;
+            font-size: 14px;
+            letter-spacing: 2px;
+            border-radius: 25px;
+            cursor: pointer;
+            text-transform: uppercase;
+            box-shadow: 0 0 15px rgba(0, 255, 200, 0.2);
+            transition: all 0.3s ease;
+        }
+        .btn:active {
+            background: #00ffc8;
+            color: #0d1117;
+            box-shadow: 0 0 25px #00ffc8;
+        }
+        #status-text {
+            color: #a0aec0;
+            font-size: 13px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            text-shadow: 0 0 8px rgba(160, 174, 192, 0.4);
+        }
+        #back-to-menu-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            padding: 8px 15px;
+            font-size: 11px;
+            border-color: #a0aec0;
+            color: #a0aec0;
+            box-shadow: none;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div id="menu-screen" class="screen">
+        <h1>Zen Vectors</h1>
+        <div id="level-container" class="level-grid">
+            </div>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+    
+    <button id="back-to-menu-btn" class="btn hidden">Menu</button>
+    <div id="ui-layer" class="hidden">
+        <div id="status-text">Pull Ball to Aim Velocity</div>
+        <button id="actionBtn" class="btn hidden">Restart</button>
+    </div>
+</div>
+
+<script>
+// ==========================================
+// ====== LEVEL GENERATION GAP START ========
+// ==========================================
+const loadedLevels = [
+  {
+    "ball": { "x": 0.2, "y": 0.8 },
+    "target": { "x": 0.8, "y": 0.3, "radius": 35 },
+    "lines": [
+      { "x1": 0.05, "y1": 0.85, "x2": 0.5, "y2": 0.85 },
+      { "x1": 0.6, "y1": 0.4, "x2": 0.95, "y2": 0.4 }
+    ]
+  },
+  {
+    "ball": { "x": 0.15, "y": 0.75 },
+    "target": { "x": 0.85, "y": 0.25, "radius": 35 },
+    "lines": [
+      { "x1": 0.05, "y1": 0.8, "x2": 0.3, "y2": 0.8 },
+      { "x1": 0.3, "y1": 0.8, "x2": 0.6, "y2": 0.5 },
+      { "x1": 0.6, "y1": 0.5, "x2": 0.95, "y2": 0.35 }
+    ]
+  },
+  {
+    "ball": { "x": 0.2, "y": 0.8 },
+    "target": { "x": 0.8, "y": 0.75, "radius": 35 },
+    "lines": [
+      { "x1": 0.05, "y1": 0.85, "x2": 0.4, "y2": 0.85 },
+      { "x1": 0.5, "y1": 0.4, "x2": 0.5, "y2": 0.9 },
+      { "x1": 0.6, "y1": 0.85, "x2": 0.95, "y2": 0.85 }
+    ]
+  },
+  {
+    "ball": { "x": 0.15, "y": 0.8 },
+    "target": { "x": 0.2, "y": 0.2, "radius": 30 },
+    "lines": [
+      { "x1": 0.05, "y1": 0.85, "x2": 0.5, "y2": 0.85 },
+      { "x1": 0.4, "y1": 0.55, "x2": 0.95, "y2": 0.55 },
+      { "x1": 0.05, "y1": 0.3, "x2": 0.6, "y2": 0.3 }
+    ]
+  },
+  {
+    "ball": { "x": 0.5, "y": 0.8 },
+    "target": { "x": 0.5, "y": 0.2, "radius": 35 },
+    "lines": [
+      { "x1": 0.3, "y1": 0.85, "x2": 0.7, "y2": 0.85 },
+      { "x1": 0.1, "y1": 0.4, "x2": 0.4, "y2": 0.5 },
+      { "x1": 0.9, "y1": 0.4, "x2": 0.6, "y2": 0.5 },
+      { "x1": 0.4, "y1": 0.28, "x2": 0.6, "y2": 0.28 }
+    ]
+  },
+  {
+    "ball": { "x": 0.1, "y": 0.4 },
+    "target": { "x": 0.85, "y": 0.35, "radius": 30 },
+    "lines": [
+      { "x1": 0.05, "y1": 0.5, "x2": 0.4, "y2": 0.5 },
+      { "x1": 0.3, "y1": 0.2, "x2": 0.7, "y2": 0.2 },
+      { "x1": 0.4, "y1": 0.7, "x2": 0.8, "y2": 0.7 },
+      { "x1": 0.75, "y1": 0.45, "x2": 0.95, "y2": 0.45 }
+    ]
+  },
+  {
+    "ball": { "x": 0.15, "y": 0.8 },
+    "target": { "x": 0.85, "y": 0.15, "radius": 25 },
+    "lines": [
+      { "x1": 0.05, "y1": 0.85, "x2": 0.3, "y2": 0.85 },
+      { "x1": 0.4, "y1": 0.9, "x2": 0.9, "y2": 0.5 },
+      { "x1": 0.3, "y1": 0.4, "x2": 0.7, "y2": 0.1 },
+      { "x1": 0.75, "y1": 0.25, "x2": 0.95, "y2": 0.25 }
+    ]
+  },
+  {
+    "ball": { "x": 0.5, "y": 0.15 },
+    "target": { "x": 0.5, "y": 0.85, "radius": 35 },
+    "lines": [
+      { "x1": 0.4, "y1": 0.25, "x2": 0.6, "y2": 0.25 },
+      { "x1": 0.2, "y1": 0.45, "x2": 0.4, "y2": 0.45 },
+      { "x1": 0.6, "y1": 0.45, "x2": 0.8, "y2": 0.45 },
+      { "x1": 0.3, "y1": 0.65, "x2": 0.7, "y2": 0.65 },
+      { "x1": 0.1, "y1": 0.9, "x2": 0.9, "y2": 0.9 }
+    ]
+  },
+  {
+    "ball": { "x": 0.85, "y": 0.8 },
+    "target": { "x": 0.15, "y": 0.2, "radius": 30 },
+    "lines": [
+      { "x1": 0.7, "y1": 0.85, "x2": 0.95, "y2": 0.85 },
+      { "x1": 0.4, "y1": 0.6, "x2": 0.8, "y2": 0.6 },
+      { "x1": 0.2, "y1": 0.4, "x2": 0.5, "y2": 0.4 },
+      { "x1": 0.05, "y1": 0.25, "x2": 0.3, "y2": 0.25 }
+    ]
+  },
+  {
+    "ball": { "x": 0.5, "y": 0.85 },
+    "target": { "x": 0.5, "y": 0.25, "radius": 20 },
+    "lines": [
+      { "x1": 0.3, "y1": 0.9, "x2": 0.7, "y2": 0.9 },
+      { "x1": 0.1, "y1": 0.6, "x2": 0.4, "y2": 0.7 },
+      { "x1": 0.9, "y1": 0.6, "x2": 0.6, "y2": 0.7 },
+      { "x1": 0.2, "y1": 0.4, "x2": 0.45, "y2": 0.35 },
+      { "x1": 0.8, "y1": 0.4, "x2": 0.55, "y2": 0.35 }
+    ]
+  }
+];
+// ==========================================
+// ======= LEVEL GENERATION GAP END =========
+// ==========================================
+
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const actionBtn = document.getElementById('actionBtn');
+const backMenuBtn = document.getElementById('back-to-menu-btn');
+const statusText = document.getElementById('status-text');
+const menuScreen = document.getElementById('menu-screen');
+const levelContainer = document.getElementById('level-container');
+const uiLayer = document.getElementById('ui-layer');
+
+// Audio Engine Setup
+let audioCtx = null;
+const bgMusic = new Audio();
+bgMusic.src = 'g3-bgMusic.mp3';
+bgMusic.loop = true;
+
+function initAudio() {
+    if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+    }
+    bgMusic.play().catch(() => { /* Autoplay block fallback */ });
+}
+
+// 32-bit Synthesized Ambient Bell Engine
+function playBellSound() {
+    if (!audioCtx) return;
+    
+    let osc = audioCtx.createOscillator();
+    let gainNode = audioCtx.createGain();
+    
+    // Pure sine fundamental paired with harmonic overtone ratios for clear bell physics
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(587.33, audioCtx.currentTime); // D5 high tone
+    
+    // Smooth bell decay reverb envelope mapping
+    gainNode.gain.setValueAtTime(1.2, audioCtx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 2.5);
+    
+    osc.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+    
+    osc.start();
+    osc.stop(audioCtx.currentTime + 2.5);
+}
+
+// Physics Configuration Defaults
+const GRAVITY = 0;
+const FRICTION = 0.997;
+const BOUNCE = -1.06;
+const VEL_SCALE = 0.02;
+const ACC_SCALE = 0.0004;
+
+// States
+let currentAppMode = 'MENU'; 
+let gameplayState = 'VELOCITY'; 
+
+let currentLevelIndex = 0;
+let selectedLevelData = null;
+let width, height;
+
+// Entities
+let ball = { x: 0, y: 0, radius: 14, vx: 0, vy: 0, ax: 0, ay: 0 };
+let target = { x: 0, y: 0, radius: 35 };
+let lines = [];
+
+// Vector Inputs
+let isDragging = false;
+let dragStart = { x: 0, y: 0 };
+let dragCurrent = { x: 0, y: 0 };
+let inputVelocity = { x: 0, y: 0 };
+let inputAcceleration = { x: 0, y: 0 };
+
+function resize() {
+    const rect = canvas.getBoundingClientRect();
+    width = canvas.width = rect.width;
+    height = canvas.height = rect.height;
+    if (currentAppMode === 'GAME' && selectedLevelData) {
+        buildLevelInstance(selectedLevelData);
+    }
+}
+
+function initMenu() {
+    if (!loadedLevels || loadedLevels.length === 0) {
+        levelContainer.innerHTML = `<div class="no-data-msg">no data !</div>`;
+    } else {
+        renderLevelGrid(loadedLevels);
+    }
+}
+
+function renderLevelGrid(levels) {
+    levelContainer.innerHTML = ''; 
+    levels.forEach((level, index) => {
+        const card = document.createElement('div');
+        card.className = 'level-card';
+        card.innerText = index + 1;
+        card.addEventListener('click', () => {
+            initAudio();
+            currentLevelIndex = index;
+            launchLevel(level);
+        });
+        levelContainer.appendChild(card);
+    });
+}
+
+function launchLevel(levelData) {
+    selectedLevelData = levelData;
+    currentAppMode = 'GAME';
+    
+    menuScreen.classList.add('hidden');
+    uiLayer.classList.remove('hidden');
+    backMenuBtn.classList.remove('hidden');
+    
+    buildLevelInstance(levelData);
+}
+
+function buildLevelInstance(data) {
+    gameplayState = 'VELOCITY';
+    isDragging = false;
+    
+    ball.x = data.ball.x * width;
+    ball.y = data.ball.y * height;
+    ball.vx = 0; ball.vy = 0; ball.ax = 0; ball.ay = 0;
+    
+    inputVelocity = { x: 0, y: 0 };
+    inputAcceleration = { x: 0, y: 0 };
+    
+    target.x = data.target.x * width;
+    target.y = data.target.y * height;
+    target.radius = data.target.radius || 35;
+    
+    lines = data.lines.map(line => ({
+        x1: line.x1 * width,
+        y1: line.y1 * height,
+        x2: line.x2 * width,
+        y2: line.y2 * height
+    }));
+    
+    updateHUD();
+}
+
+function updateHUD() {
+    actionBtn.classList.add('hidden'); // hidden by default during setup phase
+    if (gameplayState === 'VELOCITY') {
+        statusText.innerText = "Step 1: Drag Ball for Velocity";
+    } else if (gameplayState === 'ACCELERATION') {
+        statusText.innerText = "Step 2: Drag Ball for Acceleration";
+    } else if (gameplayState === 'SIMULATING') {
+        statusText.innerText = "Simulating Motion...";
+        actionBtn.innerText = "Restart";
+        actionBtn.classList.remove('hidden');
+    } else if (gameplayState === 'WIN') {
+        statusText.innerText = "Target Reached!";
+        actionBtn.innerText = (currentLevelIndex + 1 < loadedLevels.length) ? "Next Level" : "All Clear! Replay";
+        actionBtn.classList.remove('hidden');
+    }
+}
+
+function getTouchPos(e) {
+    const rect = canvas.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    return { x: clientX - rect.left, y: clientY - rect.top };
+}
+
+function handleStart(pos) {
+    if (currentAppMode !== 'GAME' || (gameplayState !== 'VELOCITY' && gameplayState !== 'ACCELERATION')) return;
+    if (Math.hypot(pos.x - ball.x, pos.y - ball.y) < ball.radius * 2.5) {
+        isDragging = true;
+        dragStart = { x: ball.x, y: ball.y };
+        dragCurrent = pos;
+    }
+}
+
+function handleMove(pos) {
+    if (!isDragging) return;
+    dragCurrent = pos;
+    const dx = dragCurrent.x - dragStart.x;
+    const dy = dragCurrent.y - dragStart.y;
+    
+    if (gameplayState === 'VELOCITY') {
+        inputVelocity = { x: dx * VEL_SCALE, y: dy * VEL_SCALE };
+    } else if (gameplayState === 'ACCELERATION') {
+        inputAcceleration = { x: dx * ACC_SCALE, y: dy * ACC_SCALE };
+    }
+}
+
+function handleEnd() {
+    if (!isDragging) return;
+    isDragging = false;
+    
+    if (gameplayState === 'VELOCITY') {
+        gameplayState = 'ACCELERATION';
+    } else if (gameplayState === 'ACCELERATION') {
+        // Automatically proceed to launch simulation mode
+        gameplayState = 'SIMULATING';
+        ball.vx = inputVelocity.x;
+        ball.vy = inputVelocity.y;
+        ball.ax = inputAcceleration.x;
+        ball.ay = inputAcceleration.y;
+    }
+    updateHUD();
+}
+
+function getClosestPointOnSegment(p, a, b) {
+    const ab = { x: b.x - a.x, y: b.y - a.y };
+    const ap = { x: p.x - a.x, y: p.y - a.y };
+    let t = (ap.x * ab.x + ap.y * ab.y) / (ab.x * ab.x + ab.y * ab.y);
+    t = Math.max(0, Math.min(1, t));
+    return { x: a.x + t * ab.x, y: a.y + t * ab.y };
+}
+
+function updatePhysics() {
+    if (currentAppMode !== 'GAME' || gameplayState !== 'SIMULATING') return;
+    
+    ball.vx += ball.ax;
+    ball.vy += ball.ay + GRAVITY;
+    ball.vx *= FRICTION;
+    ball.vy *= FRICTION;
+    ball.x += ball.vx;
+    ball.y += ball.vy;
+    
+    lines.forEach(line => {
+        const ptA = { x: line.x1, y: line.y1 };
+        const ptB = { x: line.x2, y: line.y2 };
+        const closest = getClosestPointOnSegment(ball, ptA, ptB);
+        const dist = Math.hypot(ball.x - closest.x, ball.y - closest.y);
+        
+        if (dist < ball.radius) {
+            let nx = ball.x - closest.x;
+            let ny = ball.y - closest.y;
+            let nLen = Math.hypot(nx, ny);
+            if (nLen === 0) { nx = 0; ny = -1; nLen = 1; }
+            nx /= nLen; ny /= nLen;
+            
+            ball.x = closest.x + nx * ball.radius;
+            ball.y = closest.y + ny * ball.radius;
+            
+            let dot = ball.vx * nx + ball.vy * ny;
+            if (dot < 0) {
+                ball.vx -= (1 - BOUNCE) * dot * nx;
+                ball.vy -= (1 - BOUNCE) * dot * ny;
+                playBellSound(); // Trigger synthesized audio feedback on impact
+            }
+        }
+    });
+    
+    if (Math.hypot(ball.x - target.x, ball.y - target.y) < target.radius) {
+        gameplayState = 'WIN';
+        updateHUD();
+    }
+    
+    if (ball.y > height + 100 || ball.x < -100 || ball.x > width + 100) {
+        buildLevelInstance(selectedLevelData);
+    }
+}
+
+function renderFrames() {
+    ctx.fillStyle = '#080b10';
+    ctx.fillRect(0, 0, width, height);
+    
+    if (currentAppMode === 'GAME') {
+        ctx.shadowBlur = 15;
+        
+        // Target Circle
+        ctx.strokeStyle = '#d633ff';
+        ctx.shadowColor = '#d633ff';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(target.x, target.y, target.radius, 0, Math.PI * 2);
+        ctx.stroke();
+        
+        // Environment Lines
+        ctx.strokeStyle = '#00bfff';
+        ctx.shadowColor = '#00bfff';
+        ctx.lineWidth = 3;
+        lines.forEach(line => {
+            ctx.beginPath();
+            ctx.moveTo(line.x1, line.y1);
+            ctx.lineTo(line.x2, line.y2);
+            ctx.stroke();
+        });
+        
+        // Setup Vector Guides (Dotted Projection Paths)
+        if (gameplayState === 'ACCELERATION') {
+            // Draw finalized velocity vector path
+            ctx.lineWidth = 1;
+            ctx.strokeStyle = 'rgba(0, 255, 200, 0.4)';
+            ctx.shadowColor = 'transparent';
+            ctx.beginPath();
+            ctx.moveTo(ball.x, ball.y);
+            ctx.lineTo(ball.x + (inputVelocity.x / VEL_SCALE), ball.y + (inputVelocity.y / VEL_SCALE));
+            ctx.stroke();
+        }
+        
+        if (isDragging) {
+            ctx.lineWidth = 2;
+            ctx.setLineDash([4, 4]);
+            ctx.beginPath();
+            ctx.moveTo(dragStart.x, dragStart.y);
+            ctx.lineTo(dragCurrent.x, dragCurrent.y);
+            ctx.strokeStyle = (gameplayState === 'VELOCITY') ? '#00ffc8' : '#ff4a4a';
+            ctx.shadowColor = ctx.strokeStyle;
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+        
+        // Ball Entity
+        ctx.strokeStyle = '#00ffc8';
+        ctx.shadowColor = '#00ffc8';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+        ctx.stroke();
+        
+        ctx.shadowBlur = 0;
+    }
+    
+    requestAnimationFrame(() => {
+        updatePhysics();
+        renderFrames();
+    });
+}
+
+// HUD Button Interaction Router
+actionBtn.addEventListener('click', () => {
+    initAudio();
+    if (gameplayState === 'SIMULATING') {
+        buildLevelInstance(selectedLevelData);
+    } else if (gameplayState === 'WIN') {
+        if (currentLevelIndex + 1 < loadedLevels.length) {
+            currentLevelIndex++;
+            launchLevel(loadedLevels[currentLevelIndex]);
+        } else {
+            // All levels finished -> return back loop 
+            currentLevelIndex = 0;
+            launchLevel(loadedLevels[currentLevelIndex]);
+        }
+    }
+});
+
+backMenuBtn.addEventListener('click', () => {
+    currentAppMode = 'MENU';
+    uiLayer.classList.add('hidden');
+    backMenuBtn.classList.add('hidden');
+    menuScreen.classList.remove('hidden');
+});
+
+canvas.addEventListener('mousedown', (e) => handleStart(getTouchPos(e)));
+canvas.addEventListener('mousemove', (e) => handleMove(getTouchPos(e)));
+window.addEventListener('mouseup', handleEnd);
+canvas.addEventListener('touchstart', (e) => { e.preventDefault(); handleStart(getTouchPos(e)); }, {passive: false});
+canvas.addEventListener('touchmove', (e) => { e.preventDefault(); handleMove(getTouchPos(e)); }, {passive: false});
+window.addEventListener('touchend', handleEnd);
+
+window.addEventListener('resize', resize);
+resize();
+initMenu();
+renderFrames();
+</script>
+
+</body>
+</html>
